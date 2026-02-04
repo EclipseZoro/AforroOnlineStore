@@ -2,6 +2,10 @@ from django.db.models import Q, F, Value, IntegerField, Case, When
 from django.db.models.functions import Coalesce
 
 from rest_framework.generics import ListAPIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
 
 from products.models import Product
 from stores.models import Inventory
@@ -88,3 +92,43 @@ class ProductSearchAPIView(ListAPIView):
             ).order_by("-relevance")
 
         return qs
+
+class ProductSuggestAPIView(APIView):
+
+    def get(self, request):
+
+        q = request.query_params.get("q", "").strip()
+
+        if len(q) < 3:
+            return Response(
+                {"detail": "At least 3 characters are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        prefix_qs = (
+            Product.objects
+            .filter(title__istartswith=q)
+            .order_by("title")
+            .values_list("title", flat=True)[:10]
+        )
+
+        remaining = 10 - len(prefix_qs)
+
+        suggestions = list(prefix_qs)
+
+        if remaining > 0:
+            general_qs = (
+                Product.objects
+                .filter(title__icontains=q)
+                .exclude(title__istartswith=q)
+                .order_by("title")
+                .values_list("title", flat=True)[:remaining]
+            )
+
+            suggestions.extend(list(general_qs))
+
+        return Response(
+            {
+                "results": suggestions
+            }
+        )
