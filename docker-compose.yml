@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:15
+    container_name: aforro-postgres
+    environment:
+      POSTGRES_DB: aforro
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    container_name: aforro-redis
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    container_name: aforro-web
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=onlineStore.settings
+
+  celery:
+    build: .
+    container_name: aforro-celery
+    command: celery -A onlineStore.celery worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=onlineStore.settings
+
+volumes:
+  postgres_data:
