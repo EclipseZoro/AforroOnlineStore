@@ -87,7 +87,7 @@ Supported params: q, category, min_price, max_price, store_id, in_stock, sort (p
 - Returns product titles only.
 
 ##  Redis Integration
-- Autocomplete endpoint responses are cached under autocomplete:<query> for 5 minutes.
+- Autocomplete endpoint responses are cached under autocomplete:<query> for 10 minutes.
 - Significantly reduces repeated DB reads for popular prefixes.
 
 ##  Celery Integration
