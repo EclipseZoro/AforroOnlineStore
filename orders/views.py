@@ -12,6 +12,7 @@ from .serializers import OrderCreateSerializer, OrderResponseSerializer, StoreOr
 
 from stores.models import Store, Inventory
 from products.models import Product
+from .tasks import send_order_confirmation
 
 
 class OrderCreateAPIView(APIView):
@@ -34,11 +35,6 @@ class OrderCreateAPIView(APIView):
                 {"detail": "One or more products do not exist."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-        
-
-        
-
         with transaction.atomic():
             inventories = Inventory.objects.select_for_update().filter(
             store=store,
@@ -102,6 +98,8 @@ class OrderCreateAPIView(APIView):
                 inv = inventory_map[item["product_id"]]
                 inv.quantity -= item["quantity_requested"]
                 inv.save(update_fields=["quantity"])
+
+            send_order_confirmation.delay(order.id)
 
             return Response(
                 OrderResponseSerializer(order).data,
