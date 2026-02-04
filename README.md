@@ -1,83 +1,63 @@
-🛒 Aforro – Backend Developer Assignment (Round-2)
+#  Aforro � Backend Developer Assignment (Round-2)
 
-This project implements a complete backend module using Django + Django REST Framework, demonstrating:
+Complete Django + DRF backend showcasing transactional order processing, optimized queries, cached search, Celery workers, and containerized deployment.
 
-transactional order processing
+## Highlights
+- Transactional order workflows with row-level locking
+- Search and autocomplete APIs with Redis caching
+- Celery background processing for order confirmations
+- Optimized listings using select_related, annotations, and pagination
+- Dockerized setup for local parity
 
-query optimization
+##  Tech Stack
+- Python 3.x
+- Django & Django REST Framework
+- PostgreSQL
+- Redis
+- Celery
+- Docker & Docker Compose
 
-search and autocomplete APIs
-
-Redis caching
-
-Celery asynchronous tasks
-
-Dockerized deployment
-
-🧱 Tech Stack
-
-Python
-
-Django & Django REST Framework
-
-PostgreSQL
-
-Redis
-
-Celery
-
-Docker & Docker Compose
-
-📁 Project Structure
+##  Project Structure
+```
 onlineStore/
-├── onlineStore/          # main project (settings, urls, celery)
-├── products/
-├── stores/
-├── orders/
-├── search/
-├── tests/
-├── Dockerfile
-├── docker-compose.yml
-└── requirements.txt
+ onlineStore/          # settings, URLs, celery bootstrap
+ products/
+ stores/
+ orders/
+ search/
+ tests/
+ Dockerfile
+ docker-compose.yml
+ requirements.txt
+```
 
-⚙️ Setup & Run (Docker)
+##  Setup & Run (Docker)
+1. Ensure Docker Desktop is running.
+2. Build and start services:
+   ```bash
+   docker compose up --build
+   ```
+3. Apply migrations:
+   ```bash
+   docker compose exec web python manage.py migrate
+   ```
+4. Create a superuser:
+   ```bash
+   docker compose exec web python manage.py createsuperuser
+   ```
+5. Seed sample data:
+   ```bash
+   docker compose exec web python manage.py seed_data
+   ```
 
-Make sure Docker Desktop is running.
+Seeding creates 10+ categories, 1000+ products, 20+ stores, and 300+ inventory rows per store.
 
-From the project root:
+##  Admin
+Visit http://127.0.0.1:8000/admin with the credentials created above.
 
-docker compose up --build
-
-Run migrations
-docker compose exec web python manage.py migrate
-
-Create admin user
-docker compose exec web python manage.py createsuperuser
-
-Seed dummy data
-docker compose exec web python manage.py seed_data
-
-
-This generates:
-
-10+ categories
-
-1000+ products
-
-20+ stores
-
-at least 300 inventory items per store
-
-🔐 Admin
-http://127.0.0.1:8000/admin
-
-📌 APIs
-1️⃣ Create Order
-POST /orders/
-
-
-Example:
-
+##  APIs
+### 1 Create Order � POST /orders/
+```json
 {
   "store_id": 1,
   "items": [
@@ -85,191 +65,61 @@ Example:
     {"product_id": 12, "quantity_requested": 1}
   ]
 }
-
-
-Behaviour
-
-If any product has insufficient stock → order is REJECTED
-
-If all are available → order is CONFIRMED and stock is deducted
-
-The operation is fully wrapped inside a database transaction
-
-2️⃣ Store Orders Listing
-GET /stores/<store_id>/orders/
-
-
-Returns:
-
-order id
-
-status
-
-created_at
-
-total number of items (sum of quantities)
-
-Sorted by newest first.
-
-3️⃣ Store Inventory Listing
-GET /stores/<store_id>/inventory/
-
-
-Returns:
-
-product title
-
-price
-
-category name
-
-quantity
-
-Sorted alphabetically by product title.
-
-4️⃣ Product Search
-GET /api/search/products/
-
-
-Supported parameters:
-
-q
-
-category
-
-min_price
-
-max_price
-
-store_id
-
-in_stock
-
-sort ( price, -price, newest, relevance )
-
-If store_id is provided, inventory quantity for that store is included.
-
-Pagination metadata is included.
-
-5️⃣ Autocomplete
-GET /api/search/suggest/?q=xxx
-
-
-Rules:
-
-minimum 3 characters
-
-maximum 10 results
-
-prefix matches appear first
-
-only product titles are returned
-
-🧠 Redis Integration
-
-Redis is used as a cache for the autocomplete API.
-
-Cached endpoint:
-
-GET /api/search/suggest/
-
-
-Cache key format:
-
-autocomplete:<query>
-
-
-A TTL-based strategy (5 minutes) is used for invalidation.
-
-This significantly reduces repeated database hits for frequently searched prefixes.
-
-🔁 Celery Integration
-
-Celery is configured with Redis as the message broker.
-
-An asynchronous task is triggered when an order is successfully confirmed.
-
-Example task:
-
-send_order_confirmation(order_id)
-
-The task simulates background processing such as sending an order confirmation.
-
-Running Celery (Docker)
-
-Celery worker is started automatically using Docker Compose:
-
-aforro-celery
-
-Local development (Windows)
-
-For local development on Windows, Celery is started using the solo pool:
-
-celery -A onlineStore.celery worker -l info --pool=solo
-
-
-This is required due to multiprocessing limitations on Windows.
-
-🧪 Tests
-
-The project contains 5 automated tests that cover:
-
-confirmed order creation and stock deduction
-
-rejected order when stock is insufficient
-
-inventory uniqueness constraint
-
-store order listing aggregation
-
-autocomplete minimum character rule
-
-Run tests:
-
+```
+- Insufficient stock on any line item rejects the order.
+- Successful orders confirm and deduct stock within a single transaction.
+
+### 2 Store Orders Listing � GET /stores/<store_id>/orders/
+- Returns order id, status, created_at, and aggregated quantity.
+- Sorted newest first.
+
+### 3 Store Inventory Listing � GET /stores/<store_id>/inventory/
+- Returns product title, price, category, and quantity.
+- Sorted alphabetically by product title.
+
+### 4 Product Search � GET /api/search/products/
+Supported params: q, category, min_price, max_price, store_id, in_stock, sort (price, -price, newest, relevance). When store_id is provided the inventory quantity for that store is included. Responses include pagination metadata.
+
+### 5 Autocomplete � GET /api/search/suggest/?q=...
+- Minimum 3 characters, maximum 10 results.
+- Prefix matches rank first.
+- Returns product titles only.
+
+##  Redis Integration
+- Autocomplete endpoint responses are cached under autocomplete:<query> for 5 minutes.
+- Significantly reduces repeated DB reads for popular prefixes.
+
+##  Celery Integration
+- Redis broker; task send_order_confirmation(order_id) runs after confirmed orders.
+- Docker Compose launches the aforro-celery worker automatically.
+- On Windows development machines run:
+  ```bash
+  celery -A onlineStore.celery worker -l info --pool=solo
+  ```
+
+##  Tests
+Coverage includes confirmed/rejected orders, inventory uniqueness, store listing aggregation, and autocomplete validation.
+
+Run the suite:
+```bash
 docker compose exec web python manage.py test
+```
 
-🧩 Database Consistency & Transactions
+##  Database Consistency & Transactions
+- transaction.atomic() guards order creation.
+- select_for_update() locks inventory rows to prevent concurrent double-deduction.
 
-Order creation is wrapped inside:
+##  Scalability Considerations
+- Aggregations and select_related mitigate N+1 queries.
+- Redis caching and Celery workers offload read and background workloads.
+- PostgreSQL ensures strong transactional guarantees and horizontal scaling is achievable via multiple Django + Celery containers behind a load balancer.
 
-transaction.atomic()
-
-
-Inventory rows are locked using:
-
-select_for_update()
-
-
-This prevents race conditions and double-deduction when multiple orders are created concurrently.
-
-🚀 Scalability Considerations
-
-Inventory and order listing queries use aggregation and select_related to avoid N+1 queries.
-
-Autocomplete responses are cached using Redis to reduce read load.
-
-Asynchronous processing using Celery keeps API response times low.
-
-PostgreSQL is used to provide strong transactional guarantees.
-
-The architecture allows horizontal scaling of Django and Celery workers behind a load balancer.
-
-✅ Features Completed
-
-Data models with proper constraints
-
-Atomic order processing
-
-Optimized listing APIs
-
-Product search and autocomplete
-
-Redis caching
-
-Celery background tasks
-
-Dockerized environment
-
-Automated test coverage
-
-Assignment completed as per the provided specification.
+##  Delivered Features
+- Strongly typed data models with constraints
+- Atomic order processing pipeline
+- Optimized store and inventory listings
+- Search plus autocomplete with caching
+- Celery-based async notifications
+- Dockerized local environment
+- Automated regression tests
+- Assignment completed per specification
