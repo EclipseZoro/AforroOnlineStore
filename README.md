@@ -1,4 +1,4 @@
-#  Aforro – Backend Developer Assignment (Round-2)
+#  Aforro â€“ Backend Developer Assignment (Round-2)
 
 Complete Django + DRF backend showcasing transactional order processing, optimized queries, cached search, Celery workers, and containerized deployment.
 
@@ -37,8 +37,9 @@ onlineStore/
    ```bash
    docker compose up --build
    ```
-3. Apply migrations:
+3. Stash and Apply migrations:
    ```bash
+   docker compose exec web python manage.py makemigrations
    docker compose exec web python manage.py migrate
    ```
 4. Create a superuser:
@@ -56,7 +57,7 @@ Seeding creates 10+ categories, 1000+ products, 20+ stores, and 300+ inventory r
 Visit http://127.0.0.1:8000/admin with the credentials created above.
 
 ##  APIs
-### 1 Create Order — POST /orders/
+### 1 Create Order â€” POST /orders/
 ```json
 {
   "store_id": 1,
@@ -69,18 +70,18 @@ Visit http://127.0.0.1:8000/admin with the credentials created above.
 - Insufficient stock on any line item rejects the order.
 - Successful orders confirm and deduct stock within a single transaction.
 
-### 2 Store Orders Listing — GET /stores/<store_id>/orders/
+### 2 Store Orders Listing â€” GET /stores/<store_id>/orders/
 - Returns order id, status, created_at, and aggregated quantity.
 - Sorted newest first.
 
-### 3 Store Inventory Listing — GET /stores/<store_id>/inventory/
+### 3 Store Inventory Listing â€” GET /stores/<store_id>/inventory/
 - Returns product title, price, category, and quantity.
 - Sorted alphabetically by product title.
 
-### 4 Product Search — GET /api/search/products/
+### 4 Product Search â€” GET /api/search/products/
 Supported params: q, category, min_price, max_price, store_id, in_stock, sort (price, -price, newest, relevance). When store_id is provided the inventory quantity for that store is included. Responses include pagination metadata.
 
-### 5 Autocomplete — GET /api/search/suggest/?q=...
+### 5 Autocomplete â€” GET /api/search/suggest/?q=...
 - Minimum 3 characters, maximum 10 results.
 - Prefix matches rank first.
 - Returns product titles only.
