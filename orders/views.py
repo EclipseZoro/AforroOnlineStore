@@ -1,11 +1,14 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.db.models import Sum
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.generics import ListAPIView
 
 from .models import Order, OrderItem
-from .serializers import OrderCreateSerializer, OrderResponseSerializer
+from .serializers import OrderCreateSerializer, OrderResponseSerializer, StoreOrderListSerializer
 
 from stores.models import Store, Inventory
 from products.models import Product
@@ -104,3 +107,18 @@ class OrderCreateAPIView(APIView):
                 OrderResponseSerializer(order).data,
                 status=status.HTTP_201_CREATED
             )
+
+class StoreOrderListAPIView(ListAPIView):
+    serializer_class = StoreOrderListSerializer
+
+    def get_queryset(self):
+        store_id = self.kwargs["store_id"]
+
+        return (
+            Order.objects
+            .filter(store_id=store_id)
+            .annotate(
+                total_items=Sum("items__quantity_requested")
+            )
+            .order_by("-created_at")
+        )
