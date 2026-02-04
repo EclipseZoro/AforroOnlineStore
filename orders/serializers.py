@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Order, OrderItem
+from django.db.models import Sum
 
 class OrderItemCreateSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
@@ -28,6 +29,12 @@ class OrderResponseSerializer(serializers.ModelSerializer):
         model = Order
         fields = ('id', 'status', 'created_at', 'items')
     
+class StoreOrderListSerializer(serializers.ModelSerializer):
+    total_items = serializers.IntegerField()
+    class Meta:
+        model = Order
+        fields = ('id', 'status', 'created_at', 'total_items')
+
 
 
 
