@@ -32,16 +32,18 @@ class OrderCreateAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        inventories = Inventory.objects.select_for_update().filter(
+        
+
+        
+
+        with transaction.atomic():
+            inventories = Inventory.objects.select_for_update().filter(
             store=store,
             product_id__in=product_ids
         )
-
-        inventory_map = {
+            inventory_map = {
             inv.product_id: inv for inv in inventories
         }
-
-        with transaction.atomic():
 
             insufficient = False
 
