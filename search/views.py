@@ -1,5 +1,8 @@
 from django.db.models import Q, F, Value, IntegerField, Case, When
 from django.db.models.functions import Coalesce
+from django.core.cache import cache
+from django.conf import settings
+
 
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
@@ -105,6 +108,14 @@ class ProductSuggestAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
+        cache_key = f"autocomplete:{q.lower()}"
+
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return Response({"results": cached_result})
+
+
         prefix_qs = (
             Product.objects
             .filter(title__istartswith=q)
@@ -127,8 +138,11 @@ class ProductSuggestAPIView(APIView):
 
             suggestions.extend(list(general_qs))
 
-        return Response(
-            {
-                "results": suggestions
-            }
+        cache.set(
+            cache_key,
+            suggestions,
+            timeout=getattr(settings, "CACHE_TTL", 300)
         )
+
+        return Response({"results": suggestions})
+
